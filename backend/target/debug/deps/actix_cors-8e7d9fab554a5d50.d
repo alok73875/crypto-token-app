@@ -1,0 +1,12 @@
+/root/crypto-token-app/backend/target/debug/deps/actix_cors-8e7d9fab554a5d50.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/all_or_some.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/builder.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/inner.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/middleware.rs
+
+/root/crypto-token-app/backend/target/debug/deps/libactix_cors-8e7d9fab554a5d50.rlib: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/all_or_some.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/builder.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/inner.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/middleware.rs
+
+/root/crypto-token-app/backend/target/debug/deps/libactix_cors-8e7d9fab554a5d50.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/all_or_some.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/builder.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/inner.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/middleware.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/all_or_some.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/builder.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/error.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/inner.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/actix-cors-0.6.5/src/middleware.rs:
