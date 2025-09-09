@@ -1,1 +1,1379 @@
-<head><script defer="defer" src="/static/js/main.2e3f77f3.js"></script><link href="/static/css/main.c3a725c5.css" rel="stylesheet"></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoToken Manager - Rust Backend</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .token-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        .token-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .wallet-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .transaction-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #10b981;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .notification.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+        }
+        .connected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        .disconnected {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        .rust-badge {
+            background: linear-gradient(135deg, #ce422b 0%, #8b2500 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+<script defer src="/static/js/bundle.js"></script></head>
+<body>
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status disconnected">
+        🔴 Rust Backend Disconnected
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Rust Backend Setup Instructions -->
+    <div id="setupInstructions" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="glass rounded-2xl p-8 text-white max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <span class="mr-3">🦀</span> Rust Backend Setup Required
+                <span class="rust-badge ml-3">RUST + AXUM</span>
+            </h2>
+            <div class="space-y-4 text-sm">
+                <p>To use the high-performance Rust backend, follow these steps:</p>
+                
+                <div class="bg-black/30 p-4 rounded-lg">
+                    <p class="font-bold mb-2">1. Create a new Rust project:</p>
+                    <pre class="text-xs"><code>cargo new crypto-backend
+cd crypto-backend</code></pre>
+                </div>
+
+                <div class="bg-black/30 p-4 rounded-lg">
+                    <p class="font-bold mb-2">2. Update Cargo.toml:</p>
+                    <pre class="text-xs overflow-x-auto"><code id="cargoToml">[package]
+name = "crypto-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"</code></pre>
+                </div>
+                
+                <div class="bg-black/30 p-4 rounded-lg">
+                    <p class="font-bold mb-2">3. Replace src/main.rs with this code:</p>
+                    <pre class="text-xs overflow-x-auto max-h-60"><code id="rustCode">use axum::{
+    extract::Query,
+    http::{HeaderValue, Method, StatusCode},
+    response::Json,
+    routing::{delete, get, post},
+    Router,
+};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::sync::{Arc, Mutex};
+use tower_http::cors::{Any, CorsLayer};
+use uuid::Uuid;
+
+// Data structures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Token {
+    id: String,
+    name: String,
+    symbol: String,
+    total_supply: f64,
+    owner: String,
+    price: f64,
+    created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Transaction {
+    id: String,
+    transaction_type: String,
+    token_symbol: String,
+    from: String,
+    to: String,
+    amount: f64,
+    timestamp: DateTime<Utc>,
+    hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AppData {
+    tokens: Vec<Token>,
+    wallets: HashMap<String, HashMap<String, f64>>,
+    transactions: Vec<Transaction>,
+}
+
+impl Default for AppData {
+    fn default() -> Self {
+        Self {
+            tokens: Vec::new(),
+            wallets: HashMap::new(),
+            transactions: Vec::new(),
+        }
+    }
+}
+
+// Request/Response types
+#[derive(Debug, Deserialize)]
+struct CreateTokenRequest {
+    name: String,
+    symbol: String,
+    total_supply: f64,
+    owner: String,
+    price: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct TransferRequest {
+    token_symbol: String,
+    from: String,
+    to: String,
+    amount: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct AirdropRequest {
+    token_symbol: String,
+    recipients: u32,
+    amount_per_recipient: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct AirdropResponse {
+    message: String,
+    transactions: Vec<Transaction>,
+}
+
+#[derive(Debug, Serialize)]
+struct ErrorResponse {
+    error: String,
+}
+
+// Application state
+type AppState = Arc<Mutex<AppData>>;
+
+const DATA_FILE: &str = "crypto_data.json";
+
+// Utility functions
+fn load_data() -> AppData {
+    match fs::read_to_string(DATA_FILE) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => AppData::default(),
+    }
+}
+
+fn save_data(data: &AppData) -> Result<(), Box<dyn std::error::Error>> {
+    let json = serde_json::to_string_pretty(data)?;
+    fs::write(DATA_FILE, json)?;
+    Ok(())
+}
+
+fn generate_wallet_address() -> String {
+    format!("0x{}", hex::encode(&Uuid::new_v4().as_bytes()[..20]))
+}
+
+// Route handlers
+async fn get_data(state: axum::extract::State<AppState>) -> Json<AppData> {
+    let data = state.lock().unwrap();
+    Json(data.clone())
+}
+
+async fn create_token(
+    state: axum::extract::State<AppState>,
+    Json(request): Json<CreateTokenRequest>,
+) -> Result<Json<Token>, (StatusCode, Json<ErrorResponse>)> {
+    let mut data = state.lock().unwrap();
+    
+    // Check if token symbol already exists
+    if data.tokens.iter().any(|t| t.symbol == request.symbol) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Token symbol already exists".to_string(),
+            }),
+        ));
+    }
+
+    let token = Token {
+        id: Uuid::new_v4().to_string(),
+        name: request.name,
+        symbol: request.symbol.clone(),
+        total_supply: request.total_supply,
+        owner: request.owner.clone(),
+        price: request.price,
+        created_at: Utc::now(),
+    };
+
+    // Initialize owner balance
+    data.wallets
+        .entry(request.owner.clone())
+        .or_insert_with(HashMap::new)
+        .insert(request.symbol.clone(), request.total_supply);
+
+    // Add creation transaction
+    let transaction = Transaction {
+        id: Uuid::new_v4().to_string(),
+        transaction_type: "mint".to_string(),
+        token_symbol: request.symbol,
+        from: "System".to_string(),
+        to: request.owner,
+        amount: request.total_supply,
+        timestamp: Utc::now(),
+        hash: format!("hash_{}", Uuid::new_v4()),
+    };
+
+    data.tokens.push(token.clone());
+    data.transactions.insert(0, transaction);
+
+    if let Err(e) = save_data(&data) {
+        eprintln!("Failed to save data: {}", e);
+    }
+
+    Ok(Json(token))
+}
+
+async fn transfer_tokens(
+    state: axum::extract::State<AppState>,
+    Json(request): Json<TransferRequest>,
+) -> Result<Json<Transaction>, (StatusCode, Json<ErrorResponse>)> {
+    let mut data = state.lock().unwrap();
+
+    // Validate transfer
+    let from_balance = data
+        .wallets
+        .get(&request.from)
+        .and_then(|wallet| wallet.get(&request.token_symbol))
+        .copied()
+        .unwrap_or(0.0);
+
+    if from_balance < request.amount {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Insufficient balance".to_string(),
+            }),
+        ));
+    }
+
+    // Perform transfer
+    if let Some(from_wallet) = data.wallets.get_mut(&request.from) {
+        *from_wallet.get_mut(&request.token_symbol).unwrap() -= request.amount;
+        if from_wallet.get(&request.token_symbol).unwrap() == &0.0 {
+            from_wallet.remove(&request.token_symbol);
+            if from_wallet.is_empty() {
+                data.wallets.remove(&request.from);
+            }
+        }
+    }
+
+    data.wallets
+        .entry(request.to.clone())
+        .or_insert_with(HashMap::new)
+        .entry(request.token_symbol.clone())
+        .and_modify(|balance| *balance += request.amount)
+        .or_insert(request.amount);
+
+    // Add transaction
+    let transaction = Transaction {
+        id: Uuid::new_v4().to_string(),
+        transaction_type: "transfer".to_string(),
+        token_symbol: request.token_symbol,
+        from: request.from,
+        to: request.to,
+        amount: request.amount,
+        timestamp: Utc::now(),
+        hash: format!("hash_{}", Uuid::new_v4()),
+    };
+
+    data.transactions.insert(0, transaction.clone());
+
+    if let Err(e) = save_data(&data) {
+        eprintln!("Failed to save data: {}", e);
+    }
+
+    Ok(Json(transaction))
+}
+
+async fn airdrop_tokens(
+    state: axum::extract::State<AppState>,
+    Json(request): Json<AirdropRequest>,
+) -> Result<Json<AirdropResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let mut data = state.lock().unwrap();
+    let mut transactions = Vec::new();
+
+    for i in 0..request.recipients {
+        let address = generate_wallet_address();
+        
+        data.wallets
+            .entry(address.clone())
+            .or_insert_with(HashMap::new)
+            .entry(request.token_symbol.clone())
+            .and_modify(|balance| *balance += request.amount_per_recipient)
+            .or_insert(request.amount_per_recipient);
+
+        let transaction = Transaction {
+            id: format!("{}_{}", Uuid::new_v4(), i),
+            transaction_type: "airdrop".to_string(),
+            token_symbol: request.token_symbol.clone(),
+            from: "Airdrop".to_string(),
+            to: address,
+            amount: request.amount_per_recipient,
+            timestamp: Utc::now(),
+            hash: format!("hash_{}_{}", Uuid::new_v4(), i),
+        };
+
+        data.transactions.insert(0, transaction.clone());
+        transactions.push(transaction);
+    }
+
+    if let Err(e) = save_data(&data) {
+        eprintln!("Failed to save data: {}", e);
+    }
+
+    Ok(Json(AirdropResponse {
+        message: format!("Airdropped to {} wallets", request.recipients),
+        transactions,
+    }))
+}
+
+async fn clear_data(
+    state: axum::extract::State<AppState>,
+) -> Json<serde_json::Value> {
+    let mut data = state.lock().unwrap();
+    *data = AppData::default();
+
+    if let Err(e) = save_data(&data) {
+        eprintln!("Failed to save data: {}", e);
+    }
+
+    Json(serde_json::json!({ "message": "All data cleared" }))
+}
+
+#[tokio::main]
+async fn main() {
+    // Initialize application state
+    let app_data = Arc::new(Mutex::new(load_data()));
+
+    // Configure CORS
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap())
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::DELETE])
+        .allow_headers(Any);
+
+    // Build application routes
+    let app = Router::new()
+        .route("/api/data", get(get_data))
+        .route("/api/tokens", post(create_token))
+        .route("/api/transfer", post(transfer_tokens))
+        .route("/api/airdrop", post(airdrop_tokens))
+        .route("/api/clear", delete(clear_data))
+        .layer(cors)
+        .with_state(app_data);
+
+    // Start server
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3001")
+        .await
+        .unwrap();
+        
+    println!("🦀 CryptoToken Rust Backend running on http://127.0.0.1:3001");
+    println!("📁 Data will be saved to: {}", DATA_FILE);
+    
+    axum::serve(listener, app).await.unwrap();
+}</code></pre>
+                </div>
+
+                <div class="bg-black/30 p-4 rounded-lg">
+                    <p class="font-bold mb-2">4. Add hex dependency to Cargo.toml:</p>
+                    <pre class="text-xs"><code>hex = "0.4"</code></pre>
+                </div>
+                
+                <div class="bg-black/30 p-4 rounded-lg">
+                    <p class="font-bold mb-2">5. Start the Rust server:</p>
+                    <pre class="text-xs"><code>cargo run</code></pre>
+                </div>
+                
+                <div class="bg-green-900/30 border border-green-500/50 p-4 rounded-lg">
+                    <p class="text-green-300 font-bold mb-2">🦀 Why Rust Backend?</p>
+                    <ul class="text-xs space-y-1 text-green-200">
+                        <li>• <strong>Memory Safety:</strong> No crashes from memory issues</li>
+                        <li>• <strong>High Performance:</strong> Faster than Node.js</li>
+                        <li>• <strong>Type Safety:</strong> Catch errors at compile time</li>
+                        <li>• <strong>Concurrency:</strong> Handle thousands of requests</li>
+                        <li>• <strong>Zero-Cost Abstractions:</strong> Fast without sacrificing safety</li>
+                    </ul>
+                </div>
+                
+                <p class="text-yellow-300">⚠️ The Rust backend will save data to <code>crypto_data.json</code> and persist between restarts!</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-4 mt-6">
+                <button onclick="copyCargoToml()" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                    📋 Copy Cargo.toml
+                </button>
+                <button onclick="copyRustCode()" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                    📋 Copy Rust Code
+                </button>
+                <button onclick="checkConnection()" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-colors text-sm">
+                    🔄 Check Connection
+                </button>
+                <button onclick="useOfflineMode()" class="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-lg transition-colors text-sm">
+                    📱 Use Offline Mode
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass text-white py-8 mb-8">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+                        <span class="text-3xl">💰</span>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold">CryptoToken Manager</h1>
+                        <p class="text-blue-100 text-lg flex items-center">
+                            High-Performance Rust Backend System
+                            <span class="rust-badge ml-3">🦀 RUST + AXUM</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm opacity-75">Total Value Locked</div>
+                    <div id="totalValue" class="text-2xl font-bold">$0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 pb-8">
+        <!-- Main Actions -->
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <!-- Mint Token Form -->
+            <div class="glass rounded-2xl p-8 text-white">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <span class="mr-3">🏭</span> Create New Token
+                </h2>
+                <form id="mintForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Token Name</label>
+                        <input type="text" id="tokenName" placeholder="e.g., MyAwesomeCoin" 
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Token Symbol</label>
+                        <input type="text" id="tokenSymbol" placeholder="e.g., MAC" maxlength="5"
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Initial Supply</label>
+                        <input type="number" id="initialSupply" placeholder="1000000" min="1"
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Owner Wallet Address</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="ownerAddress" placeholder="0x1234...abcd"
+                                   class="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button type="button" onclick="generateRandomWallet()" 
+                                    class="px-4 py-3 bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors">
+                                🎲
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Token Price (USD)</label>
+                        <input type="number" id="tokenPrice" placeholder="1.00" min="0.01" step="0.01"
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white py-3 px-6 rounded-lg font-semibold">
+                        🚀 Create Token
+                    </button>
+                </form>
+            </div>
+
+            <!-- Transfer Tokens Form -->
+            <div class="glass rounded-2xl p-8 text-white">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <span class="mr-3">💸</span> Transfer Tokens
+                </h2>
+                <form id="transferForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Select Token</label>
+                        <select id="transferToken" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <option value="">Choose a token...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">From Address</label>
+                        <select id="fromAddress" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <option value="">Select wallet...</option>
+                        </select>
+                        <div id="fromBalance" class="text-xs mt-1 opacity-75"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">To Address</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="toAddress" placeholder="0x5678...efgh"
+                                   class="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button type="button" onclick="generateToAddress()" 
+                                    class="px-4 py-3 bg-green-500 hover:bg-green-600 rounded-lg transition-colors">
+                                🎲
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Amount</label>
+                        <div class="flex space-x-2">
+                            <input type="number" id="transferAmount" placeholder="100" min="0.01" step="0.01"
+                                   class="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button type="button" onclick="setMaxAmount()" 
+                                    class="px-4 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors text-sm">
+                                MAX
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white py-3 px-6 rounded-lg font-semibold">
+                        💫 Send Tokens
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="grid lg:grid-cols-3 gap-6 mb-8">
+            <!-- Created Tokens -->
+            <div class="glass rounded-2xl p-6 text-white">
+                <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <span class="mr-2">🪙</span> Your Tokens
+                    </span>
+                    <span id="tokenCount" class="text-sm bg-white/20 px-2 py-1 rounded-full">0</span>
+                </h3>
+                <div id="tokensList" class="space-y-3 max-h-80 overflow-y-auto">
+                    <div class="text-sm text-white/60 italic">Loading tokens...</div>
+                </div>
+            </div>
+
+            <!-- Wallet Balances -->
+            <div class="glass rounded-2xl p-6 text-white">
+                <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <span class="mr-2">👛</span> Wallet Balances
+                    </span>
+                    <span id="walletCount" class="text-sm bg-white/20 px-2 py-1 rounded-full">0</span>
+                </h3>
+                <div id="walletsList" class="space-y-3 max-h-80 overflow-y-auto">
+                    <div class="text-sm text-white/60 italic">Loading wallets...</div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="glass rounded-2xl p-6 text-white">
+                <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <span class="mr-2">📊</span> Recent Transactions
+                    </span>
+                    <span id="transactionCount" class="text-sm bg-white/20 px-2 py-1 rounded-full">0</span>
+                </h3>
+                <div id="transactionsList" class="space-y-3 max-h-80 overflow-y-auto">
+                    <div class="text-sm text-white/60 italic">Loading transactions...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Overview -->
+        <div class="glass rounded-2xl p-6 text-white mb-8">
+            <h3 class="text-xl font-bold mb-4 flex items-center">
+                <span class="mr-2">📈</span> Market Overview
+                <span class="rust-badge ml-3">POWERED BY RUST</span>
+            </h3>
+            <div class="grid md:grid-cols-4 gap-4">
+                <div class="bg-white/10 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold" id="totalTokens">0</div>
+                    <div class="text-sm opacity-75">Total Tokens</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold" id="totalSupply">0</div>
+                    <div class="text-sm opacity-75">Total Supply</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold" id="activeWallets">0</div>
+                    <div class="text-sm opacity-75">Active Wallets</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold" id="totalTransactions">0</div>
+                    <div class="text-sm opacity-75">Total Transactions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="glass rounded-2xl p-6 text-white">
+            <h3 class="text-xl font-bold mb-4">⚡ Quick Actions</h3>
+            <div class="grid md:grid-cols-5 gap-4">
+                <button onclick="generateRandomWallet()" class="btn-primary py-3 px-4 rounded-lg font-medium">
+                    🎲 Generate Wallet
+                </button>
+                <button onclick="airdropTokens()" class="bg-green-500 hover:bg-green-600 py-3 px-4 rounded-lg font-medium transition-colors">
+                    🪂 Airdrop Tokens
+                </button>
+                <button onclick="exportData()" class="bg-blue-500 hover:bg-blue-600 py-3 px-4 rounded-lg font-medium transition-colors">
+                    📤 Export Data
+                </button>
+                <button onclick="refreshData()" class="bg-purple-500 hover:bg-purple-600 py-3 px-4 rounded-lg font-medium transition-colors">
+                    🔄 Refresh Data
+                </button>
+                <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 py-3 px-4 rounded-lg font-medium transition-colors">
+                    🗑️ Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        // Configuration
+        const API_BASE_URL = 'http://127.0.0.1:3001/api';
+        let isOnlineMode = false;
+        let tokens = [];
+        let wallets = {};
+        let transactions = [];
+
+        // API Functions
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'API call failed');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                if (!isOnlineMode) {
+                    throw error;
+                }
+                showNotification(`Rust API Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function loadData() {
+            if (!isOnlineMode) {
+                // Offline mode - use localStorage
+                tokens = JSON.parse(localStorage.getItem('cryptoTokens') || '[]');
+                wallets = JSON.parse(localStorage.getItem('cryptoWallets') || '{}');
+                transactions = JSON.parse(localStorage.getItem('cryptoTransactions') || '[]');
+                return;
+            }
+
+            try {
+                const data = await apiCall('/data');
+                tokens = data.tokens || [];
+                wallets = data.wallets || {};
+                transactions = data.transactions || [];
+            } catch (error) {
+                showNotification('Failed to load data from Rust server', 'error');
+            }
+        }
+
+        async function createToken(tokenData) {
+            if (!isOnlineMode) {
+                // Offline mode
+                if (tokens.find(t => t.symbol === tokenData.symbol)) {
+                    throw new Error('Token symbol already exists');
+                }
+
+                const token = {
+                    ...tokenData,
+                    id: Date.now().toString(),
+                    created_at: new Date().toISOString()
+                };
+
+                tokens.push(token);
+                
+                if (!wallets[token.owner]) wallets[token.owner] = {};
+                wallets[token.owner][token.symbol] = token.total_supply;
+
+                transactions.unshift({
+                    id: Date.now().toString() + Math.random(),
+                    transaction_type: 'mint',
+                    token_symbol: token.symbol,
+                    from: 'System',
+                    to: token.owner,
+                    amount: token.total_supply,
+                    timestamp: new Date().toISOString(),
+                    hash: 'hash_' + Date.now()
+                });
+
+                saveOfflineData();
+                return token;
+            }
+
+            return await apiCall('/tokens', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: tokenData.name,
+                    symbol: tokenData.symbol,
+                    total_supply: tokenData.total_supply,
+                    owner: tokenData.owner,
+                    price: tokenData.price
+                })
+            });
+        }
+
+        async function transferTokens(transferData) {
+            if (!isOnlineMode) {
+                // Offline mode
+                const { token_symbol, from, to, amount } = transferData;
+                
+                if (!wallets[from] || !wallets[from][token_symbol] || wallets[from][token_symbol] < amount) {
+                    throw new Error('Insufficient balance');
+                }
+
+                wallets[from][token_symbol] -= amount;
+                if (!wallets[to]) wallets[to] = {};
+                if (!wallets[to][token_symbol]) wallets[to][token_symbol] = 0;
+                wallets[to][token_symbol] += amount;
+
+                if (wallets[from][token_symbol] === 0) {
+                    delete wallets[from][token_symbol];
+                    if (Object.keys(wallets[from]).length === 0) {
+                        delete wallets[from];
+                    }
+                }
+
+                const transaction = {
+                    id: Date.now().toString() + Math.random(),
+                    transaction_type: 'transfer',
+                    token_symbol,
+                    from,
+                    to,
+                    amount,
+                    timestamp: new Date().toISOString(),
+                    hash: 'hash_' + Date.now()
+                };
+                transactions.unshift(transaction);
+
+                saveOfflineData();
+                return transaction;
+            }
+
+            return await apiCall('/transfer', {
+                method: 'POST',
+                body: JSON.stringify(transferData)
+            });
+        }
+
+        async function performAirdrop(airdropData) {
+            if (!isOnlineMode) {
+                // Offline mode
+                const { token_symbol, recipients, amount_per_recipient } = airdropData;
+                const newTransactions = [];
+                
+                for (let i = 0; i < recipients; i++) {
+                    const address = generateWalletAddress();
+                    if (!wallets[address]) wallets[address] = {};
+                    if (!wallets[address][token_symbol]) wallets[address][token_symbol] = 0;
+                    wallets[address][token_symbol] += amount_per_recipient;
+                    
+                    const transaction = {
+                        id: Date.now().toString() + Math.random() + i,
+                        transaction_type: 'airdrop',
+                        token_symbol,
+                        from: 'Airdrop',
+                        to: address,
+                        amount: amount_per_recipient,
+                        timestamp: new Date().toISOString(),
+                        hash: 'hash_' + Date.now() + i
+                    };
+                    transactions.unshift(transaction);
+                    newTransactions.push(transaction);
+                }
+
+                saveOfflineData();
+                return { transactions: newTransactions, message: `Airdropped to ${recipients} wallets` };
+            }
+
+            return await apiCall('/airdrop', {
+                method: 'POST',
+                body: JSON.stringify(airdropData)
+            });
+        }
+
+        async function clearData() {
+            if (!isOnlineMode) {
+                tokens = [];
+                wallets = {};
+                transactions = [];
+                saveOfflineData();
+                return { message: 'All data cleared' };
+            }
+
+            return await apiCall('/clear', {
+                method: 'DELETE'
+            });
+        }
+
+        function saveOfflineData() {
+            localStorage.setItem('cryptoTokens', JSON.stringify(tokens));
+            localStorage.setItem('cryptoWallets', JSON.stringify(wallets));
+            localStorage.setItem('cryptoTransactions', JSON.stringify(transactions));
+        }
+
+        // Connection Management
+        async function checkConnection() {
+            try {
+                await fetch(`${API_BASE_URL}/data`);
+                setConnectionStatus(true);
+                document.getElementById('setupInstructions').style.display = 'none';
+                await loadData();
+                updateUI();
+                showNotification('Connected to Rust backend server! 🦀');
+            } catch (error) {
+                setConnectionStatus(false);
+                showNotification('Rust backend server not available', 'error');
+            }
+        }
+
+        function setConnectionStatus(connected) {
+            isOnlineMode = connected;
+            const statusElement = document.getElementById('connectionStatus');
+            if (connected) {
+                statusElement.textContent = '🟢 Rust Backend Connected';
+                statusElement.className = 'connection-status connected';
+            } else {
+                statusElement.textContent = '🔴 Rust Backend Disconnected';
+                statusElement.className = 'connection-status disconnected';
+            }
+        }
+
+        function useOfflineMode() {
+            isOnlineMode = false;
+            document.getElementById('setupInstructions').style.display = 'none';
+            setConnectionStatus(false);
+            loadData().then(() => {
+                updateUI();
+                showNotification('Using offline mode with localStorage 📱');
+            });
+        }
+
+        function copyCargoToml() {
+            const code = document.getElementById('cargoToml').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('Cargo.toml copied to clipboard! 📋');
+            });
+        }
+
+        function copyRustCode() {
+            const code = document.getElementById('rustCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('Rust code copied to clipboard! 🦀');
+            });
+        }
+
+        // Utility Functions
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function generateWalletAddress() {
+            return '0x' + Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function formatAddress(address) {
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+
+        function calculateTotalValue() {
+            return tokens.reduce((total, token) => {
+                const price = token.price || 1;
+                return total + (token.total_supply * price);
+            }, 0);
+        }
+
+        function setLoading(element, loading) {
+            if (loading) {
+                element.classList.add('loading');
+            } else {
+                element.classList.remove('loading');
+            }
+        }
+
+        // Form Handlers
+        document.getElementById('mintForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            setLoading(form, true);
+            
+            try {
+                const tokenData = {
+                    name: document.getElementById('tokenName').value.trim(),
+                    symbol: document.getElementById('tokenSymbol').value.trim().toUpperCase(),
+                    total_supply: parseFloat(document.getElementById('initialSupply').value),
+                    owner: document.getElementById('ownerAddress').value.trim(),
+                    price: parseFloat(document.getElementById('tokenPrice').value) || 1
+                };
+
+                if (!tokenData.name || !tokenData.symbol || !tokenData.total_supply || !tokenData.owner) {
+                    throw new Error('Please fill in all required fields');
+                }
+
+                await createToken(tokenData);
+                await loadData();
+                updateUI();
+                form.reset();
+                showNotification(`Token ${tokenData.symbol} created successfully! 🎉`);
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                setLoading(form, false);
+            }
+        });
+
+        document.getElementById('transferForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            setLoading(form, true);
+            
+            try {
+                const transferData = {
+                    token_symbol: document.getElementById('transferToken').value,
+                    from: document.getElementById('fromAddress').value,
+                    to: document.getElementById('toAddress').value.trim(),
+                    amount: parseFloat(document.getElementById('transferAmount').value)
+                };
+
+                if (!transferData.token_symbol || !transferData.from || !transferData.to || !transferData.amount) {
+                    throw new Error('Please fill in all fields');
+                }
+
+                if (transferData.from === transferData.to) {
+                    throw new Error('Cannot transfer to the same address');
+                }
+
+                await transferTokens(transferData);
+                await loadData();
+                updateUI();
+                form.reset();
+                showNotification(`Transferred ${transferData.amount} ${transferData.token_symbol} successfully! 💫`);
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                setLoading(form, false);
+            }
+        });
+
+        // UI Updates
+        function updateTokensList() {
+            const container = document.getElementById('tokensList');
+            const countElement = document.getElementById('tokenCount');
+            
+            countElement.textContent = tokens.length;
+            
+            if (tokens.length === 0) {
+                container.innerHTML = '<div class="text-sm text-white/60 italic">No tokens created yet. Create your first token!</div>';
+                return;
+            }
+
+            container.innerHTML = tokens.map(token => `
+                <div class="token-card p-4 rounded-lg text-white">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-bold text-lg">${token.name}</h4>
+                            <p class="text-sm opacity-90">${token.symbol}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">Supply</div>
+                            <div class="font-bold">${token.total_supply.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs opacity-75">
+                            $${token.price.toFixed(2)} per token
+                        </div>
+                        <div class="text-xs opacity-75">
+                            ${new Date(token.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateWalletsList() {
+            const container = document.getElementById('walletsList');
+            const countElement = document.getElementById('walletCount');
+            const walletEntries = Object.entries(wallets);
+            
+            countElement.textContent = walletEntries.length;
+            
+            if (walletEntries.length === 0) {
+                container.innerHTML = '<div class="text-sm text-white/60 italic">No wallets with balances yet.</div>';
+                return;
+            }
+
+            container.innerHTML = walletEntries.map(([address, balances]) => {
+                const totalValue = Object.entries(balances).reduce((sum, [symbol, balance]) => {
+                    const token = tokens.find(t => t.symbol === symbol);
+                    const price = token ? token.price : 1;
+                    return sum + (balance * price);
+                }, 0);
+
+                return `
+                    <div class="wallet-card p-4 rounded-lg text-white">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-xs opacity-75">
+                                ${formatAddress(address)}
+                            </div>
+                            <div class="text-xs font-bold">
+                                $${totalValue.toFixed(2)}
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            ${Object.entries(balances).map(([symbol, balance]) => `
+                                <div class="flex justify-between">
+                                    <span class="font-medium">${symbol}</span>
+                                    <span class="font-bold">${balance.toLocaleString()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateTransactionsList() {
+            const container = document.getElementById('transactionsList');
+            const countElement = document.getElementById('transactionCount');
+            
+            countElement.textContent = transactions.length;
+            
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="text-sm text-white/60 italic">No transactions yet.</div>';
+                return;
+            }
+
+            container.innerHTML = transactions.slice(0, 10).map(tx => `
+                <div class="transaction-item p-3 rounded-lg">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="text-sm font-medium">
+                            ${tx.transaction_type === 'mint' ? '🏭' : tx.transaction_type === 'airdrop' ? '🪂' : '💸'} ${tx.transaction_type.toUpperCase()}
+                        </div>
+                        <div class="text-xs opacity-75">
+                            ${new Date(tx.timestamp).toLocaleTimeString()}
+                        </div>
+                    </div>
+                    <div class="text-sm">
+                        <div class="font-medium">${tx.amount.toLocaleString()} ${tx.token_symbol}</div>
+                        <div class="text-xs opacity-75">
+                            ${formatAddress(tx.from)} → ${formatAddress(tx.to)}
+                        </div>
+                        <div class="text-xs opacity-50 mt-1">
+                            Hash: ${tx.hash.substring(0, 16)}...
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTransferTokenOptions() {
+            const select = document.getElementById('transferToken');
+            select.innerHTML = '<option value="">Choose a token...</option>';
+            
+            tokens.forEach(token => {
+                const option = document.createElement('option');
+                option.value = token.symbol;
+                option.textContent = `${token.name} (${token.symbol})`;
+                option.style.background = '#1f2937';
+                option.style.color = 'white';
+                select.appendChild(option);
+            });
+        }
+
+        function updateFromAddressOptions() {
+            const tokenSymbol = document.getElementById('transferToken').value;
+            const select = document.getElementById('fromAddress');
+            const balanceDiv = document.getElementById('fromBalance');
+            
+            select.innerHTML = '<option value="">Select wallet...</option>';
+            balanceDiv.textContent = '';
+            
+            if (!tokenSymbol) return;
+            
+            const walletsWithToken = Object.entries(wallets).filter(([address, balances]) => 
+                balances[tokenSymbol] && balances[tokenSymbol] > 0
+            );
+            
+            walletsWithToken.forEach(([address, balances]) => {
+                const option = document.createElement('option');
+                option.value = address;
+                option.textContent = `${formatAddress(address)} (${balances[tokenSymbol].toLocaleString()} ${tokenSymbol})`;
+                option.style.background = '#1f2937';
+                option.style.color = 'white';
+                select.appendChild(option);
+            });
+        }
+
+        function updateFromBalance() {
+            const tokenSymbol = document.getElementById('transferToken').value;
+            const fromAddress = document.getElementById('fromAddress').value;
+            const balanceDiv = document.getElementById('fromBalance');
+            
+            if (!tokenSymbol || !fromAddress) {
+                balanceDiv.textContent = '';
+                return;
+            }
+            
+            const balance = wallets[fromAddress] && wallets[fromAddress][tokenSymbol] || 0;
+            balanceDiv.textContent = `Available: ${balance.toLocaleString()} ${tokenSymbol}`;
+        }
+
+        function updateMarketStats() {
+            document.getElementById('totalTokens').textContent = tokens.length;
+            document.getElementById('totalSupply').textContent = tokens.reduce((sum, token) => sum + token.total_supply, 0).toLocaleString();
+            document.getElementById('activeWallets').textContent = Object.keys(wallets).length;
+            document.getElementById('totalTransactions').textContent = transactions.length;
+            document.getElementById('totalValue').textContent = '$' + calculateTotalValue().toLocaleString();
+        }
+
+        function updateUI() {
+            updateTokensList();
+            updateWalletsList();
+            updateTransactionsList();
+            updateTransferTokenOptions();
+            updateMarketStats();
+        }
+
+        // Event Listeners
+        document.getElementById('transferToken').addEventListener('change', function() {
+            updateFromAddressOptions();
+            updateFromBalance();
+        });
+
+        document.getElementById('fromAddress').addEventListener('change', updateFromBalance);
+
+        // Quick Actions
+        function generateRandomWallet() {
+            const address = generateWalletAddress();
+            const ownerField = document.getElementById('ownerAddress');
+            if (ownerField) {
+                ownerField.value = address;
+            }
+            showNotification('Random wallet address generated! 🎲');
+        }
+
+        function generateToAddress() {
+            const address = generateWalletAddress();
+            document.getElementById('toAddress').value = address;
+            showNotification('Random destination address generated! 🎯');
+        }
+
+        function setMaxAmount() {
+            const tokenSymbol = document.getElementById('transferToken').value;
+            const fromAddress = document.getElementById('fromAddress').value;
+            
+            if (!tokenSymbol || !fromAddress) {
+                showNotification('Please select token and from address first!', 'error');
+                return;
+            }
+            
+            const balance = wallets[fromAddress] && wallets[fromAddress][tokenSymbol] || 0;
+            document.getElementById('transferAmount').value = balance;
+            showNotification(`Set to maximum balance: ${balance} ${tokenSymbol}`);
+        }
+
+        async function airdropTokens() {
+            if (tokens.length === 0) {
+                showNotification('Create a token first!', 'error');
+                return;
+            }
+            
+            try {
+                const token = tokens[Math.floor(Math.random() * tokens.length)];
+                const airdropData = {
+                    token_symbol: token.symbol,
+                    recipients: 5,
+                    amount_per_recipient: 100
+                };
+                
+                const result = await performAirdrop(airdropData);
+                await loadData();
+                updateUI();
+                showNotification(`Airdropped ${airdropData.amount_per_recipient} ${token.symbol} to ${airdropData.recipients} wallets! 🪂`);
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function exportData() {
+            const data = {
+                tokens,
+                wallets,
+                transactions,
+                exportedAt: new Date().toISOString(),
+                version: '3.0',
+                backend: 'rust',
+                mode: isOnlineMode ? 'online' : 'offline'
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `crypto-tokens-rust-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Data exported successfully! 📤');
+        }
+
+        async function refreshData() {
+            try {
+                await loadData();
+                updateUI();
+                showNotification('Data refreshed from Rust backend! 🔄');
+            } catch (error) {
+                showNotification('Failed to refresh data', 'error');
+            }
+        }
+
+        async function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone!')) {
+                try {
+                    await clearData();
+                    await loadData();
+                    updateUI();
+                    showNotification('All data cleared! 🗑️');
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                }
+            }
+        }
+
+        // Initialize
+        checkConnection();
+
+        // Auto-refresh data every 30 seconds in online mode
+        setInterval(async () => {
+            if (isOnlineMode) {
+                try {
+                    await loadData();
+                    updateUI();
+                } catch (error) {
+                    // Silent refresh failure
+                }
+            }
+        }, 30000);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96d58d52772bc739',t:'MTc1NDg5MjQ0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
