@@ -36,9 +36,10 @@ async fn main() -> std::io::Result<()> {
                     .route("/tokens", web::get().to(handlers::mint::get_tokens))
                     .route("/wallets", web::get().to(handlers::balance::get_wallets))
                     .route("/transactions", web::get().to(handlers::transfer::get_transactions))
+                    .route("/status", web::get().to(|| async { "OK" })) // Health check endpoint
             )
     })
-    .bind("127.0.0.1:8080")?
+    .bind("127.0.0.1:8888")?
     .run()
     .await
 }

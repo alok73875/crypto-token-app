@@ -1,12 +1,14 @@
 import React from 'react';
 
-const TransactionHistory = ({ transactions, tokens }) => {
+const TransactionHistory = ({ transactions = [], tokens = [] }) => {
   const getTokenSymbol = (tokenId) => {
     const token = tokens.find(t => t.id === tokenId);
     return token ? token.symbol : 'Unknown';
   };
 
   return (
+
+    
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-2">Recent Transactions</h2>
       {transactions.length === 0 ? (
